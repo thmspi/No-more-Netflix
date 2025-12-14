@@ -1,0 +1,102 @@
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config/prowlarr:/config
+    ports:
+      - "9696:9696"
+    restart: unless-stopped
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    ports:
+      - "8989:8989"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config/sonarr:/config
+      - /mnt/plex_nas/tv:/tv
+      - /mnt/plex_nas/downloads:/data
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    ports:
+      - "7878:7878"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config/radarr:/config
+      - /mnt/plex_nas/movies:/movies
+      - /mnt/plex_nas/downloads:/data
+    restart: unless-stopped
+
+  bazarr:
+    image: linuxserver/bazarr
+    container_name: bazarr
+    ports:
+      - "6767:6767"
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config/bazarr:/config
+      - /mnt/plex_nas/movies:/movies
+      - /mnt/plex_nas/tv:/tv
+    restart: unless-stopped
+
+  transmission-openvpn:
+    image: haugene/transmission-openvpn:latest
+    container_name: transmission-openvpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+      - OPENVPN_PROVIDER=CUSTOM
+      - OPENVPN_CONFIG=mullvad_fr_par      # = nom du fichier .conf sans extension
+      - OPENVPN_USERNAME=7311684417803481      # ← ton n° de compte Mullvad
+      - OPENVPN_PASSWORD=m
+      - LOCAL_NETWORK=192.168.1.0/24       # ← adapte si ton LAN est différent
+      # (Optionnel) quelques réglages Transmission utiles :
+      - TRANSMISSION_DHT_ENABLED=true
+      - TRANSMISSION_PEX_ENABLED=true
+      - TRANSMISSION_UTP_ENABLED=true
+      - TRANSMISSION_PORT_FORWARDING_ENABLED=false  # Mullvad n'a pas de port forwarding
+      - TRANSMISSION_DOWNLOAD_DIR=/data/completed
+      - TRANSMISSION_INCOMPLETE_DIR=/data/incomplete
+      - TRANSMISSION_WATCH_DIR=/data/watch
+      - TRANSMISSION_IDLE_SEEDING_LIMIT_ENABLED=true
+      - TRANSMISSION_IDLE_SEEDING_LIMIT=1
+    volumes:
+      - ./config/transmission:/config
+      - ./config/transmission/openvpn:/etc/openvpn/custom
+      - /mnt/plex_nas/downloads:/data      # /data est la racine des téléchargements pour cette image
+    ports:
+      - "9091:9091"                        # UI Transmission
+    restart: unless-stopped
+
+  plex:
+    image: linuxserver/plex
+    container_name: plex
+    network_mode: host  # conseillé pour Plex
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config/plex:/config
+      - /mnt/plex_nas/movies:/movies
+      - /mnt/plex_nas/tv:/tv
+    restart: unless-stopped
+
